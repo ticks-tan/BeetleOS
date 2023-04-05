@@ -11,6 +11,8 @@
 #ifndef __BEETLE_OS_INITLDR_LDR_TYPE_H
 #define __BEETLE_OS_INITLDR_LDR_TYPE_H
 
+#include "base_type.h"
+
 #define BFH_RW_R 1
 #define BFH_RW_W 2
 
@@ -292,14 +294,14 @@ struct bmfhead_t
 struct bitminfo_t
 {
     u32_t bi_size;
-    s32_t bi_w;
-    s32_t bi_h;
+    i32_t bi_w;
+    i32_t bi_h;
     u16_t bi_planes;
     u16_t bi_bcount;
     u32_t bi_comp;
     u32_t bi_szimg;
-    s32_t bi_xpelsper;
-    s32_t bi_ypelsper;
+    i32_t bi_xpelsper;
+    i32_t bi_ypelsper;
     u32_t bi_clruserd;
     u32_t bi_clrimport;
 }__attribute__((packed));//40
@@ -451,6 +453,6 @@ struct machbstart_t
 #define VBE_DISPI_LFB_ENABLED (0x40)
 
 
-void REGCALL realadr_call_entry(u16_t callint,u16_t val1,u16_t val2);
+void REG_CALL realadr_call_entry(u16_t callint,u16_t val1,u16_t val2);
 
 #endif // __BEETLE_OS_INITLDR_LDR_TYPE_H

@@ -23,17 +23,20 @@ typedef unsigned int u32_t;
 typedef unsigned long long u64_t;
 
 
-typedef signed char i8_t;
+typedef signed char s8_t;
 
-typedef signed short i16_t;
+typedef signed short s16_t;
 
-typedef signed int i32_t;
+typedef signed int s32_t;
 
-typedef signed long long i64_t;
-
+typedef signed long long s64_t;
 
 typedef signed char char_t;
+typedef signed char char8_t;
 typedef unsigned char uchar_t;
+typedef unsigned char uchar8_t;
+typedef unsigned char16_t uchar16_t;
+typedef unsigned char32_t uchar32_t;
 
 typedef u64_t cpuflag_t;
 
@@ -41,30 +44,5 @@ typedef unsigned long size_t;
 typedef signed long ssize_t;
 typedef unsigned long address_t;
 
-/*------------------------------  template  ---------------------------------------*/
+typedef char_t* va_list_t;
 
-template<typename T>
-using Ptr = T*;
-
-template<typename T>
-using Ref = T&;
-
-#define __Extern_C \
-#ifdef __cplusplus \
-    extern "C" { \
-#endif
-
-
-/*------------------------------  define  ---------------------------------------*/
-
-#define Extern_C_Block(statement) \
-extern "C" {                \
-    statement               \
-};
-
-#define Extern_C_Line extern "C"
-
-#define ALIGN(x, a) (((x) + (a) - 1) & ~((a) - 1))
-
-
-#endif // __BEETLE_OS_BASE_TYPE_H

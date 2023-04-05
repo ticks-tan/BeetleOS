@@ -1,4 +1,4 @@
-;; GRUB1和GRUB2需要的两个头部结构
+;; GRUB头汇编
 MBT_HDR_FLAGS	EQU 0x00010003
 MBT_HDR_MAGIC	EQU 0x1BADB002
 MBT2_MAGIC	EQU 0xe85250d6
@@ -50,7 +50,7 @@ _entry:
 	out 0x70,al ; 关闭不可屏蔽中断
 
 	lgdt [GDT_PTR] ; 加载GDT_PTR到GDT寄存器
-	jmp dword 0x8 :_32bits_mode ; 长跳转刷新cs寄存器
+	jmp dword 0x8:_32bits_mode ; 长跳转刷新cs寄存器
 
 ;; 初始化通用寄存器，栈寄存器，为C++程序运行做初始化
 _32bits_mode:

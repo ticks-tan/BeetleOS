@@ -1,7 +1,7 @@
 /**
 * @File init_head.cc
 * @Date 2023-04-02
-* @Description 
+* @Description GRUB头，将二极引导放入指定内存区域
 * @Author Ticks
 * @Email ticks.cc\@gmail.com
 *

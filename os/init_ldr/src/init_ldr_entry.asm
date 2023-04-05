@@ -1,3 +1,4 @@
+;; 二极引导器入口汇编
 %include "ldrasm.inc"
 global _start
 global realadr_call_entry
@@ -10,7 +11,7 @@ _entry:
 	cli
 	lgdt [GDT_PTR]
 	lidt [IDT_PTR]
-	jmp dword 0x8 :_32bits_mode
+	jmp dword 0x8:_32bits_mode
 
 _32bits_mode:
 	mov ax, 0x10	; 数据段选择子(目的)
