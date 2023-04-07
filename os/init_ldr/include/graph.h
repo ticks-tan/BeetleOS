@@ -7,21 +7,39 @@
 *
 * Copyright 2023 Ticks, Inc. All rights reserved. 
 **/
-#ifndef __BEETLE_OS_GRAPH_H
-#define __BEETLE_OS_GRAPH_H
+#ifndef __BEETLE_OS_INIT_LDR_GRAPH_H
+#define __BEETLE_OS_INIT_LDR_GRAPH_H
 
-void init_graph(machbstart_t* mbsp);
-void graph_t_init(graph_t* initp);
-u32_t vfartolineadr(u32_t vfar);
-void init_kinitfvram(machbstart_t* mbsp);
-void get_vbemode(machbstart_t* mbsp);
-void get_vbemodeinfo(machbstart_t* mbsp);
-void set_vbemodeinfo();
-void bga_write_reg(u16_t index, u16_t data);
-u16_t bga_read_reg(u16_t index);
-u32_t get_bgadevice();
-u32_t chk_bgamaxver();
-void init_bgadevice(machbstart_t* mbsp);
-u32_t utf8_to_unicode(utf8_t* utfp,int* retuib);
+#include "ldr_type.h"
 
-#endif // __BEETLE_OS_GRAPH_H
+namespace _Ldr
+{
+    void InitGraph(_Base::Ptr<MachInfo> _mbsp);
+
+    void InitGraphInfo(_Base::Ptr<GraphInfo> _initp);
+
+    u32_t vfartolineadr(u32_t _vfar);
+
+    void init_kinitfvram(_Base::Ptr<MachInfo> _mbsp);
+
+    void GetVBEMode(_Base::Ptr<MachInfo> _mbsp);
+
+    void GetVBEModeInfo(_Base::Ptr<MachInfo> _mbsp);
+
+    void SetVBEMode();
+
+    void WriteBGAReg(u16_t _index, u16_t _data);
+
+    u16_t ReadBGAReg(u16_t _index);
+
+    u32_t GetBGADrive();
+
+    u32_t chk_bgamaxver();
+
+    void InitBGADrive(_Base::Ptr<MachInfo> _mbsp);
+
+    u32_t Utf82Unicode(_Base::Ptr<utf8_t> _utf, _Base::Ptr<s32_t> _retuib);
+
+}
+
+#endif // __BEETLE_OS_INIT_LDR_GRAPH_H

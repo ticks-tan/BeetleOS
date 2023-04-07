@@ -9,119 +9,96 @@
 **/
 #include "vgastr.h"
 
-__attribute__((section(".data"))) Cursor g_curs{};
+namespace _Ldr {
+    __attribute__((section(".data"))) Cursor g_curs{};
 
+    void InitCursor()
+    {
+        g_curs.memory_start = VGASTR_RAM_BASE;
+        g_curs.memory_end = VGASTR_RAM_END;
+        g_curs.cv_memory_addr = g_curs.pos_y = g_curs.pos_x = 0;
+    }
 
-void Cursor::write(Ptr<char_t> str)
-{
-    size_t str_addr = pos_x + pos_y * 80 * 2;
-    auto p_str_dst = Ptr<char_t>(v_mem_start + str_addr);
-    u32_t findX = 0;
+    void ClearScreen(u16_t srrv)
+    {
+        g_curs.pos_y = g_curs.pos_x = 0;
+        auto p = (_Base::Ptr<u16_t>)(VGASTR_RAM_BASE);
+        for (u32_t i = 0; i < 2001; ++i) {
+            p[i] = srrv;
+        }
+        CloseCursor();
+    }
 
-    while (*str) {
-        if (*str == 10) {
-            findX = 1;
-            ++str;
-            if (*str == 0) {
-                break;
+    void PutChar(char_t _ch, u32_t _x, u32_t _y)
+    {
+        size_t str_addr = VGASTR_RAM_BASE + (_x + (_y * 80 * 2));
+        auto p = _Base::Ptr<char_t>(str_addr);
+        *p = _ch;
+    }
+    void CloseCursor()
+    {
+        out_u8(VGACTRL_REG_ADR, VGACURS_REG_INX);
+        out_u8(VGACTRL_REG_DAT, VGACURS_CLOSE);
+    }
+    void KPrint(_Base::CPtr<char_t> _str)
+    {
+        g_curs.write(_str);
+    }
+
+    void KError(_Base::CPtr<char_t> _error)
+    {
+        KPrint(_error);
+        for (;;) {
+            ;
+        }
+    }
+
+    void Cursor::write(_Base::CPtr<char_t> _str)
+    {
+        size_t str_addr = pos_x + pos_y * 80 * 2;
+        auto p_str_dst = _Base::Ptr<char_t>(memory_start + str_addr);
+        bool findX = false;
+
+        while (*_str) {
+            if (*_str == 10) {
+                findX = true;
+                ++_str;
+                if (*_str == 0) {
+                    break;
+                }
             }
+            currentPos(VGACHAR_DF_CFLG);
+            *p_str_dst = *_str++;
+            p_str_dst += 2;
         }
 
-        currentPos(VGACHAR_DF_CFLG);
-
-        *p_str_dst = *str++;
-        p_str_dst += 2;
-    }
-
-    if (findX == 1) {
-        currentPos(VGACHAR_LR_CFLG);
-    }
-}
-
-void Cursor::currentPos(u32_t flag)
-{
-    if (flag == VGACHAR_LR_CFLG) {
-        ++this->pos_y;
-        this->pos_x = 0;
-        if (this->pos_y > 24) {
-            this->pos_y = 0;
-            clear_screen(VGADP_DFVL);
+        if (findX) {
+            currentPos(VGACHAR_LR_CFLG);
         }
-        return;
     }
-    if (flag == VGACHAR_DF_CFLG) {
-        this->pos_x += 2;
-        if (this->pos_x > 159) {
-            this->pos_x = 0;
-            ++this->pos_y;
-            if (this->pos_y > 24) {
-                this->pos_y = 0;
-                clear_screen(VGADP_DFVL);
+
+    void Cursor::currentPos(u32_t _flag) {
+        if (_flag == VGACHAR_LR_CFLG) {
+            ++pos_y;
+            pos_x = 0;
+            if (pos_y > 24) {
+                pos_y = 0;
+                ClearScreen(VGADP_DFVL);
             }
             return;
         }
-    }
-}
-
-// 转换数字
-char_t *numberk(char_t *str, size_t n, ssize_t base)
-{
-    volatile Ptr<char_t> p;
-
-    return str;
-}
-
-void clear_screen(u16_t srrv)
-{
-    g_curs.setPos(0, 0);
-
-    auto p = Ptr<u16_t>(VGASTR_RAM_BASE);
-
-    for (u32_t i = 0; i < 2001; ++i) {
-        p[i] = srrv;
-    }
-
-    close_curs();
-}
-
-void put_one_char(char_t cr, size_t x, size_t y)
-{
-    auto addr = Ptr<char_t>(VGASTR_RAM_BASE + (x + (y * 80 * 2)));
-    *addr = cr;
-}
-
-void close_curs()
-{
-}
-
-Ptr<char_t> _strcopy(Ptr<char_t> target, Ptr<char_t> source)
-{
-    while (*source) {
-        *target = *source;
-        ++target;
-        ++source;
-    }
-    return target;
-}
-
-void vsprintfk(Ptr<char_t> buf, Ptr<const char_t> fmt, va_list_t args)
-{
-    auto p = Ptr<char_t>(buf);
-    va_list_t next_arg = args;
-    while (*fmt) {
-        if (*fmt != '%') {
-            *p++ = *fmt++;
-            continue;
-        }
-        ++fmt;
-        switch (*fmt) {
-            case 'd':
-                break;
+        if (_flag == VGACHAR_DF_CFLG) {
+            pos_x += 2;
+            if (pos_x > 159) {
+                pos_x = 0;
+                ++pos_y;
+                if (pos_y > 24) {
+                    pos_y = 0;
+                    ClearScreen(VGADP_DFVL);
+                }
+                return;
+            }
         }
     }
-}
-
-void kprint(const char_t *fmt, ...)
-{
 
 }

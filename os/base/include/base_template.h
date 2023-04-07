@@ -13,12 +13,6 @@
 /*------------------------------  template  ---------------------------------------*/
 
 namespace _Base {
-    template<typename _Tp>
-    using Ptr = _Tp*;
-
-    template<typename _Tp>
-    using Ref = _Tp&;
-
 
     // 移除类型 const
     template<typename _Tp>
@@ -341,6 +335,15 @@ namespace _Base {
             : public __IsFloatPointerHelper<RemoveCV_T<_Tp>>::type { };
 
 
+    template<typename _Tp>
+    using Ptr = _Tp*;
+    template<typename _Tp>
+    using CPtr = const RemoveConst_T<_Tp>*;
+
+    template<typename _Tp>
+    using Ref = _Tp&;
+    template<typename _Tp>
+    using CRef = const RemoveConst_T<_Tp>&;
 }
 
 #endif // __BEETLE_OS_BASE_BASE_TEMPLATE_H

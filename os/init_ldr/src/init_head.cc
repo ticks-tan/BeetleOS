@@ -10,93 +10,76 @@
 
 #include "initldr.h"
 
-void inithead_entry()
+void InitHeadFile()
 {
-    init_curs();
-    close_curs();
-    clear_screen(VGADP_DFVL);
+    _Ldr::InitCursor(); // 初始化光标
+    _Ldr::CloseCursor();
+    _Ldr::ClearScreen(VGADP_DFVL);
 
-    write_realintsvefile();
-    write_ldrkrlfile();
-
-    return;
+    _Ldr::WriteRealIntSaveFile();   // 放置调用BIOS中断获取的信息
+    _Ldr::WriteLdrKernelFile();
 }
 
-void write_realintsvefile()
+namespace _Ldr
 {
+    using namespace _Base;
 
-    fhdsc_t *fhdscstart = find_file("initldrsve.bin");
-    if (fhdscstart == NULL)
+    void WriteRealIntSaveFile()
     {
-        error("not file initldrsve.bin");
-    }
-    m2mcopy((void *)((u32_t)(fhdscstart->fhd_intsfsoff) + LDRFILEADR),
-            (void *)REALDRV_PHYADR, (sint_t)fhdscstart->fhd_frealsz);
-    return;
-}
-
-fhdsc_t *find_file(char_t *fname)
-{
-    mlosrddsc_t *mrddadrs = MRDDSC_ADR;
-    if (mrddadrs->mdc_endgic != MDC_ENDGIC ||
-        mrddadrs->mdc_rv != MDC_RVGIC ||
-        mrddadrs->mdc_fhdnr < 2 ||
-        mrddadrs->mdc_filnr < 2)
-    {
-        error("no mrddsc");
-    }
-
-    s64_t rethn = -1;
-    fhdsc_t *fhdscstart = (fhdsc_t *)((u32_t)(mrddadrs->mdc_fhdbk_s) + LDRFILEADR);
-
-    for (u64_t i = 0; i < mrddadrs->mdc_fhdnr; i++)
-    {
-        if (strcmpl(fname, fhdscstart[i].fhd_name) == 0)
-        {
-            rethn = (s64_t)i;
-            goto ok_l;
+        Ptr<fhdsc_t> fhdsc_start = FindFile("init_int_save.bin");
+        if (nullptr == fhdsc_start) {
+            KError("file not found : init_int_save.bin");
         }
+        // 从映像文件中拷贝到物理内存 0x1000 处
+        memcopy(
+                Ptr<void>(REALDRV_PHY_ADDR),
+                Ptr<void>(fhdsc_start->fhd_intsfsoff + LDR_FILE_ADDR),
+                fhdsc_start->fhd_frealsz
+                );
     }
-    rethn = -1;
-    ok_l:
-    if (rethn < 0)
+
+    _Base::Ptr<fhdsc_t> FindFile(CPtr<char_t> _name)
     {
-        error("not find file");
-    }
-    return &fhdscstart[rethn];
-}
+        Ptr<mlosrddsc_t> mrd_addrs = Ptr<mlosrddsc_t>(MRD_DSC_ADDR);
+        if (mrd_addrs->mdc_endgic != MDC_END_GIC ||
+            mrd_addrs->mdc_rv != MDC_RVGIC ||
+            mrd_addrs->mdc_fhdnr < 2 ||
+            mrd_addrs->mdc_filnr < 2)
+        {
+            KError("not found mrd_dsc");
+        }
 
-void write_ldrkrlfile()
-{
-    fhdsc_t *fhdscstart = find_file("initldrkrl.bin");
-    if (fhdscstart == NULL)
+        Ptr<fhdsc_t> fhdsc_start = Ptr<fhdsc_t>(mrd_addrs->mdc_fhdbk_s + LDR_FILE_ADDR);
+
+        for (u64_t i = 0; i < mrd_addrs->mdc_fhdnr; ++i) {
+            if (strcmp(_name, fhdsc_start[i].fhd_name) == 0) {
+                return &fhdsc_start[i];
+            }
+        }
+        KError("file not found");
+        return nullptr;
+    }
+
+    void WriteLdrKernelFile()
     {
-        error("not file initldrkrl.bin");
+        Ptr<fhdsc_t> fhdsc_start = FindFile("init_ldr_kernel.bin");
+        if (nullptr == fhdsc_start) {
+            KError("not found file : init_ldr_kernel.bin");
+        }
+        // 拷贝到物理地址 0x2000 处，汇编函数会跳转到此处运行
+        // 存放二级引导主模块
+        memcopy(
+                Ptr<void>(ILDR_KERNEL_PHY_ADDR),
+                Ptr<void>(fhdsc_start->fhd_intsfsoff + LDR_FILE_ADDR),
+                fhdsc_start->fhd_frealsz
+                );
     }
-    m2mcopy((void *)((u32_t)(fhdscstart->fhd_intsfsoff) + LDRFILEADR),
-            (void *)ILDRKRL_PHYADR, (sint_t)fhdscstart->fhd_frealsz);
 
-    return;
-}
-
-
-void error(char_t *estr)
-{
-    kprint("INITLDR DIE ERROR:%s\n", estr);
-    for (;;)
-        ;
-    return;
-}
-
-int strcmpl(const char *a, const char *b)
-{
-
-    while (*b && *a && (*b == *a))
+    void WriteShellFile()
     {
-
-        b++;
-        a++;
     }
 
-    return *b - *a;
+    void WriteKernelFile()
+    {
+    }
 }

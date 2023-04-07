@@ -27,23 +27,8 @@
 // 结构体字节对齐
 #ifdef __COMPILER_GCC
 #define __TYPE_GCC_ALIGN_MIN(X) __attribute__((aligned(X)))
-#define __TYPE_MSVC_ALIGN_MIN(X)
+#define __TYPE_ALIGN __attribute__((packed))
 #endif
-
-#ifdef __COMPILER_MSVC
-#define __TYPE_GCC_ALIGN_MIN
-#define __TYPE_ALIGN_MIN(X) __attribute__(align(X))
-#endif
-
-// 线程局部存储
-#ifdef __COMPILER_GCC
-#define __THREAD_LOCAL __thread
-#endif
-
-#ifdef __COMPILER_MSVC
-#define __THREAD_LOCAL __declspec( thread )
-#endif
-
 
 #define __ALIGN(x, a) (((x) + (a) - 1) & ~((a) - 1))
 

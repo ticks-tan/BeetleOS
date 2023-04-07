@@ -10,11 +10,12 @@
 #ifndef __BEETLE_OS_INITLDR_H
 #define __BEETLE_OS_INITLDR_H
 
-#include "base_type.h"
-#include "graph.h"
-#include "vgastr.h"
 #include "ldr_type.h"
-#include "imgmgr_header.h"
-#include "fs_parse.h"
+#include "io.h"
+#include "vgastr.h"
+#include "graph.h"
+#include "ldr_entry.h"
+#include "init_head.h"
+#include "mach_start_param.h"
 
 #endif // __BEETLE_OS_INITLDR_H

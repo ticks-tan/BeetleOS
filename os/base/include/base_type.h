@@ -7,8 +7,9 @@
 *
 * Copyright 2023 Ticks, Inc. All rights reserved. 
 **/
-#ifndef __BEETLE_OS_BASE_TYPE_H
-#define __BEETLE_OS_BASE_TYPE_H
+
+#ifndef __BEETLE_OS__BASE_BASE_TYPE_H
+#define __BEETLE_OS__BASE_BASE_TYPE_H
 
 /*------------------------------  typedef  ---------------------------------------*/
 
@@ -31,12 +32,10 @@ typedef signed int s32_t;
 
 typedef signed long long s64_t;
 
-typedef signed char char_t;
-typedef signed char char8_t;
+typedef char char_t;
+typedef char char8_t;
 typedef unsigned char uchar_t;
 typedef unsigned char uchar8_t;
-typedef unsigned char16_t uchar16_t;
-typedef unsigned char32_t uchar32_t;
 
 typedef u64_t cpuflag_t;
 
@@ -46,3 +45,4 @@ typedef unsigned long address_t;
 
 typedef char_t* va_list_t;
 
+#endif // __BEETLE_OS__BASE_BASE_TYPE_H

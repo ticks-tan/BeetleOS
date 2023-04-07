@@ -1,9 +1,9 @@
 ;; 二极引导器入口汇编
-%include "ldrasm.inc"
+%include "ldr_asm.inc"
 global _start
-global realadr_call_entry
+global real_addr_call_entry
 global IDT_PTR
-extern ldrkrl_entry
+extern ldr_kernel_entry ; 二级引导器C++函数
 [section .text]
 [bits 32]
 _start:
@@ -29,13 +29,13 @@ _32bits_mode:
 	xor ebp,ebp
 	xor esp,esp
 	mov esp,0x90000
-	call ldrkrl_entry
+	call ldr_kernel_entry
 	xor ebx,ebx
 	jmp 0x2000000
 	jmp $
 
 
-realadr_call_entry:
+real_addr_call_entry:
 	pushad
 	push    ds
 	push    es

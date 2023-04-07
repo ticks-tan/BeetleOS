@@ -1,9 +1,9 @@
-;; GRUB头汇编
+;; GRUB头汇编，一些固定格式
 MBT_HDR_FLAGS	EQU 0x00010003
 MBT_HDR_MAGIC	EQU 0x1BADB002
 MBT2_MAGIC	EQU 0xe85250d6
 global _start
-extern inithead_entry
+extern InitHeadFile ; 假设有这个段，后面进行调用
 [section .text]
 [bits 32]
 _start:
@@ -47,7 +47,7 @@ _entry:
 
 	in al, 0x70
 	or al, 0x80
-	out 0x70,al ; 关闭不可屏蔽中断
+	out 0x70, al ; 关闭不可屏蔽中断
 
 	lgdt [GDT_PTR] ; 加载GDT_PTR到GDT寄存器
 	jmp dword 0x8:_32bits_mode ; 长跳转刷新cs寄存器
@@ -60,17 +60,17 @@ _32bits_mode:
 	mov es, ax
 	mov fs, ax
 	mov gs, ax
-	xor eax,eax
-	xor ebx,ebx
-	xor ecx,ecx
-	xor edx,edx
-	xor edi,edi
-	xor esi,esi
-	xor ebp,ebp
-	xor esp,esp
-	mov esp,0x7c00 ; 设置栈顶地址，0x7c00是GRUB程序开始地址
-	call inithead_entry ; 调用该函数，在C程序中实现
-	jmp 0x200000 ; 跳转到二级引导器主模块
+	xor eax, eax
+	xor ebx, ebx
+	xor ecx, ecx
+	xor edx, edx
+	xor edi, edi
+	xor esi, esi
+	xor ebp, ebp
+	xor esp, esp
+	mov esp, 0x7c00         ; 设置栈顶地址，0x7c00是GRUB程序开始地址
+	call InitHeadFile       ; 调用该函数，在C程序中实现
+	jmp 0x200000            ; 跳转到二级引导器主模块
 
 
 ;; GDT全局段描述符
