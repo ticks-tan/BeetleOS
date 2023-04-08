@@ -10,7 +10,7 @@
 
 #include "initldr.h"
 
-void ldr_kernel_entry()
+__NO_MANGLE void ldr_kernel_entry()
 {
     _Ldr::InitCursor();
     _Ldr::CloseCursor();

@@ -35,6 +35,7 @@ add_library(init_ldr_kernel
         OBJECT
         src/init_ldr_entry.asm
         src/ldr_entry.cc
+        src/ldr_type.cc
         src/mach_start_param.cc
         src/graph.cc
         src/check_cpu.cc

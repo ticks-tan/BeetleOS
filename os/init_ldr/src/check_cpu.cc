@@ -17,7 +17,7 @@ namespace _Ldr {
     bool CheckCpuIdSupport()
     {
         volatile bool rets = false;
-        asm volatile(
+        __asm__ __volatile__(
                 "pushfl \n\t"
                 "popl %%eax \n\t"               // 获取 eflags 寄存器内容到 eax
                 "movl %%eax,%%ebx \n\t"         // 保存副本到 ebx
@@ -42,7 +42,7 @@ namespace _Ldr {
     bool CheckCpuLongModeSupport()
     {
         volatile bool rets = false;
-        asm volatile(
+        __asm__ __volatile__(
                 "movl $0x80000000,%%eax \n\t"
                 "cpuid \n\t"
                 "cmpl $0x80000001,%%eax \n\t"
@@ -85,7 +85,50 @@ namespace _Ldr {
     void InitMemory(_Base::Ptr<MachInfo> _info)
     {
         _Base::Ptr<E820Map> e820map;
-        u32_t retemnr = 0;
+        u32_t e820_count = 0;
+        _info->ebda_phy_addr = get_acpi_bios_ebda();
+        E820MMap(&e820map, &e820_count);
+        if (e820_count == 0) {
+            KPrint("no e820map");
+        }
+        if (nullptr == CheckE820MemorySize(e820map, e820_count, 0x100000, 0x8000000)) {
+            KPrint("Your computer memory is too low, the memory can't less than 128MB");
+        }
+        _info->e820_phy_addr = u64_t(e820map);
+        _info->e820_phy_count = e820_count;
+        _info->e820_phy_size = e820_count * sizeof(E820Map);
+        _info->memory_size = GetE820MemorySize(e820map, e820_count);
+        MachInfo::InitAcpiRsdp(_info);
+    }
+
+    _Base::Ptr<E820Map> CheckE820MemorySize(_Base::Ptr<E820Map> _e8p,u32_t _enr,u64_t _sadr,u64_t _size)
+    {
+        u64_t len = _sadr + _size;
+        if (_enr == 0 || _e8p == nullptr) {
+            return nullptr;
+        }
+        for (u32_t i = 0; i < _enr; ++i) {
+            if (_e8p[i].type == RAM_USABLE) {
+                if ((_sadr >= _e8p[i].start_addr) && (len < (_e8p[i].start_addr + _e8p[i].size))) {
+                    return &_e8p[i];
+                }
+            }
+        }
+        return nullptr;
+    }
+
+    u64_t GetE820MemorySize(_Base::Ptr<E820Map> _e8p, u32_t _count)
+    {
+        u64_t size = 0;
+        if (_count == 0 || _e8p == nullptr) {
+            return 0;
+        }
+        for (u32_t i = 0; i < _count; ++i) {
+            if (_e8p[i].type == RAM_USABLE) {
+                size += _e8p[i].size;
+            }
+        }
+        return size;
     }
 
 }

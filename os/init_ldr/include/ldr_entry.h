@@ -10,6 +10,6 @@
 #ifndef __BEETLE_OS_INIT_LDR_LDR_ENTRY_H
 #define __BEETLE_OS_INIT_LDR_LDR_ENTRY_H
 
-void ldr_kernel_entry();
+__NO_MANGLE void ldr_kernel_entry();
 
 #endif // __BEETLE_OS_INIT_LDR_LDR_ENTRY_H

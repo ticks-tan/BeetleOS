@@ -39,7 +39,6 @@ namespace _Ldr
     void InitBGADrive(_Base::Ptr<MachInfo> _mbsp);
 
     u32_t Utf82Unicode(_Base::Ptr<utf8_t> _utf, _Base::Ptr<s32_t> _retuib);
-
 }
 
 #endif // __BEETLE_OS_INIT_LDR_GRAPH_H

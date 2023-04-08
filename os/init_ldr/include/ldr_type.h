@@ -129,7 +129,13 @@ namespace _Ldr {
 /*-----------------------------------------------------------------*/
 
     // BIOS中断
-    void __REG_CALL(3) real_addr_call_entry(u16_t call_int, u16_t val1, u16_t val2);
+    extern "C" {
+        void __REG_CALL(3) real_addr_call_entry(u16_t call_int, u16_t val1, u16_t val2);
+    }
+
+    [[noreturn]] extern void KError(_Base::CPtr<char_t> _error);
+
+
 
     struct fhdsc_t {
         u64_t fhd_type;
@@ -406,26 +412,82 @@ namespace _Ldr {
     }__TYPE_ALIGN;
 #define MBS_MIGC (u64_t)((((u64_t)'L')<<56)|(((u64_t)'M')<<48)|(((u64_t)'O')<<40)|(((u64_t)'S')<<32)|(((u64_t)'M')<<24)|(((u64_t)'B')<<16)|(((u64_t)'S')<<8)|((u64_t)'P'))
 
-    struct mrsdp_t {
-        u64_t rp_sign;
-        u8_t rp_chksum;
-        u8_t rp_oemid[6];
-        u8_t rp_revn;
-        u32_t rp_rsdtphyadr;
-        u32_t rp_len;
-        u64_t rp_xsdtphyadr;
-        u8_t rp_echksum;
-        u8_t rp_resv[3];
+
+
+#define BIOS_ACPI_RSDP_ADDR (0x40E)                     // BIOS ACPI RSDP 第一个查找位置
+#define BIOS_ACPI_RSDP_AREA (1024)                      // BIOS ACPI RSDP 第一个查找区域
+#define BIOS_ACPI_RSDP_OTHER_ADDR (0xE0000)             // BIOS ACPI RSDP 第二个查找位置
+#define BIOS_ACPI_RSDP_OTHER_AREA (0xFFFFF - 0xE0000)   // BIOS ACPI RSDP 第二个查找区域
+
+    // 设备ACPI信息表(RSDP(Root System Description Pointer) -> 根系统说明指针
+    /*
+     * 对于基于 Legacy BIOS 的系统而言，RSDP 表所在的物理地址并不固定，
+     * 要么位于 EBDA（Extended BIOS Data Area）（位于物理地址 0x40E ）的前 1KB 范围内；
+     * 要么位于 0x000E0000 到 0x000FFFFF 的物理地址范围内。
+     * 内核在启动的时候，需要去这两个物理地址范围，通过遍历物理地址空间的方法寻找 RSDP 表，
+     * 即通过寻找 RSDP 表的 Signature（RSD PTR）来定位 RSDP 的位置，
+     * 并通过该表的 length 和 checksum 来确保找到的表是正确的。
+     *
+     * 对于基于UEFI的系统而言，RSDP Table 位于 EFI_SYSTEM_TABLE 。
+     *
+     * 结构参考 ACPI spc 设计
+     *
+     * RSDP ----> [RSD Table]
+     *            [    |    ]
+     *            [RSD Entry] -----> [XSD Table]
+     *            [    |    ]        [    |    ]
+     *            [RSD Entry]        [XSD Entry] -----> [  Sig  ]
+     *            [   ...   ]        [    |    ]        [Content]
+     *                               [XSD Entry]
+     *                               [   ...   ]
+     *
+     * 参考资料 [1](https://uefi.org/htmlspecs/ACPI_Spec_6_4_html/05_ACPI_Software_Programming_Model/ACPI_Software_Programming_Model.html#root-system-description-pointer-rsdp)
+     *
+     */
+    struct MachAcpiRsdp {
+    public:
+        u64_t sign;                 // ACPI表ID，唯一标识 (8 Bytes)
+        u8_t checksum;              // 校验   (1 Byte)
+        u8_t oem_id[6];             // OEM ID   (6 Bytes)
+        u8_t revision;              // ReVision (1 Byte)
+        u32_t rsd_table_phy_addr;   // RSD Table 物理地址 (4 Bytes)
+        u32_t table_len;            // 表长度  (4 Bytes)
+        u64_t xsd_table_phy_addr;   // XSD Table 物理地址 (8 Bytes)
+        u8_t extended_checksum;     // Extended CheckSum    (1 Byte)
+        u8_t reserved[3];           // Reserved (3 Byte)
+
+    public:
+        // 检查校验和
+        static inline s32_t CheckSum(_Base::CPtr<MachAcpiRsdp> _rsdp)
+        {
+            s32_t sum = 0, table_len = s32_t(_rsdp->table_len);
+            auto ap = _Base::Ptr<uchar_t>(_rsdp);
+            while (table_len--) {
+                sum += *ap++;
+            }
+            return (sum & 0xFF);
+        }
+        // 检查结构是否正确
+        static inline _Base::Ptr<MachAcpiRsdp> CheckIsOk(_Base::Ptr<MachAcpiRsdp> _rsdp)
+        {
+            // revision 目前为 2
+            if (nullptr == _rsdp || _rsdp->table_len == 0 || _rsdp->revision == 0) {
+                return nullptr;
+            }
+            if (0 == CheckSum(_rsdp)) {
+                return _rsdp;
+            }
+            return nullptr;
+        }
+        // 从 Extended BIOS Data Area 中查找 Rsdp
+        static _Base::Ptr<MachAcpiRsdp> FindAcpiRsdpFromEbda();
+        // 扫描指定内存，查看是否满足 Rsdp 结构要求
+        static _Base::Ptr<MachAcpiRsdp> ScanRsdpFromEbda(_Base::Ptr<void> _addr, u32_t _size);
+
     }__TYPE_ALIGN;
 
     // 系统信息
     struct MachInfo {
-        static inline void Init(_Base::Ptr<MachInfo> _info)
-        {
-            _Base::memset(_info, 0, sizeof(MachInfo));
-            _info->magic = MBS_MIGC;
-        }
-
     public:
         u64_t magic;              // LMOSMBSP //0
         u64_t checksum;           // 8
@@ -449,9 +511,9 @@ namespace _Ldr {
         u64_t vga_size;           // 机器显存大小
         u64_t cpu_mode;           // 机器CPU工作模式
         u64_t memory_size;        // 机器内存大小
-        u64_t e820_addr;          // 机器e820数组地址
-        u64_t e820_count;         // 机器e820数组元素个数
-        u64_t e820_size;          // 机器e820数组大小
+        u64_t e820_phy_addr;      // 机器e820数组地址
+        u64_t e820_phy_count;     // 机器e820数组元素个数
+        u64_t e820_phy_size;      // 机器e820数组大小
         u64_t mb_e820expadr;      //
         u64_t mb_e820exnr;        //
         u64_t mb_e820exsz;        //
@@ -466,10 +528,32 @@ namespace _Ldr {
         u64_t mb_pml4padr;        // 机器页表地址
         u64_t mb_subpageslen;     // 机器页表个数
         u64_t mb_kpmapphymemsz;   // 操作系统映射空间大小
-        u64_t mb_ebdaphyadr;      //
-        mrsdp_t mb_mrsdp;           //
-        GraphInfo graph_info;         // 图形信息
-    }__TYPE_ALIGN;
+        u64_t ebda_phy_addr;      // ebda 物理地址
+        MachAcpiRsdp acpi_rsdp;   // ACPI RSDP表
+        GraphInfo graph_info;     // 图形信息
+
+    public:
+        // 初始化系统信息结构
+        static inline void Init(_Base::Ptr<MachInfo> _info)
+        {
+            _Base::memset(_info, 0, sizeof(MachInfo));
+            _info->magic = MBS_MIGC;
+        }
+
+        // 初始化 Rsdp 并检查是否可用
+        static void InitAcpiRsdp(_Base::Ptr<MachInfo> _info)
+        {
+            auto rsdp = MachAcpiRsdp::FindAcpiRsdpFromEbda();
+            if (nullptr == rsdp) {
+                KError("Error: Your Computer isn't support ACPI");
+            }
+            _Base::memcopy(&(_info->acpi_rsdp), rsdp, sizeof(MachAcpiRsdp));
+            if (nullptr == MachAcpiRsdp::CheckIsOk(&_info->acpi_rsdp)) {
+                KError("Error: Your Computer isn't support ACPI");
+            }
+        }
+
+    }__TYPE_ALIGN; // MachInfo
 
 }
 #endif // __BEETLE_OS_INIT_LDR_LDR_TYPE_H

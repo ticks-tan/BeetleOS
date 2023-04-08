@@ -30,10 +30,16 @@
 #define __TYPE_ALIGN __attribute__((packed))
 #endif
 
+// 对齐
 #define __ALIGN(x, a) (((x) + (a) - 1) & ~((a) - 1))
 
 // 使用寄存器 eax、ebx、ecx 等传递参数，而不是栈，X为最大寄存器使用数量
 #define __REG_CALL(X) __attribute__((regparm(X)))
 
+// 不混淆函数或变量名称
+#define __NO_MANGLE extern "C"
+
+// 让变量位于某个段
+#define __SECTION(Name) __attribute__((section(Name)))
 
 #endif // __BEETLE_OS_BASE_MACRO_H

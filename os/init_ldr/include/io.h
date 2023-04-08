@@ -16,7 +16,7 @@ namespace _Ldr
 {
     static inline void out_u8(const u16_t _port, const u8_t _val)
     {
-        asm volatile(
+        __asm__ __volatile__(
                 "outb %1, %0\n\t"
                 :
                 : "dN"(_port), "a"(_val)
@@ -25,7 +25,7 @@ namespace _Ldr
     static inline u8_t in_u8(const u16_t _port)
     {
         u8_t val;
-        asm volatile(
+        __asm__ __volatile__(
                 "inb %1, %0\n\t"
                 : "=a"(val)
                 : "dN"(_port)
@@ -35,7 +35,7 @@ namespace _Ldr
 
     static inline void out_u16(const u16_t _port, const u16_t _val)
     {
-        asm volatile(
+        __asm__ __volatile__(
                 "outw %1, %0\n\t"
                 :
                 : "dN"(_port), "a"(_val)
@@ -44,7 +44,7 @@ namespace _Ldr
     static inline u16_t in_u16(const u16_t _port)
     {
         u16_t val;
-        asm volatile(
+        __asm__ __volatile__(
                 "inw %1, %0\n\t"
                 : "=a"(val)
                 : "dN"(_port)

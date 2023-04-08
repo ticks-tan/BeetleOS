@@ -10,41 +10,45 @@
 #include "vgastr.h"
 
 namespace _Ldr {
-    __attribute__((section(".data"))) Cursor g_curs{};
+
+    // 全局变量，位于数据段
+    __SECTION(".data") VgaCursor g_vga_cursor{};
 
     void InitCursor()
     {
-        g_curs.memory_start = VGASTR_RAM_BASE;
-        g_curs.memory_end = VGASTR_RAM_END;
-        g_curs.cv_memory_addr = g_curs.pos_y = g_curs.pos_x = 0;
+        g_vga_cursor.memory_start = VGA_TXT_RAM_START;
+        g_vga_cursor.memory_end = VGA_TXT_RAM_END;
+        g_vga_cursor.cv_memory_addr = g_vga_cursor.y = g_vga_cursor.x = 0;
     }
 
-    void ClearScreen(u16_t srrv)
+    void ClearScreen(u16_t _ch)
     {
-        g_curs.pos_y = g_curs.pos_x = 0;
-        auto p = (_Base::Ptr<u16_t>)(VGASTR_RAM_BASE);
+        g_vga_cursor.y = g_vga_cursor.x = 0;
+        auto p = (_Base::Ptr<u16_t>)(VGA_TXT_RAM_START);
+        // 2000 个字符 ？？
         for (u32_t i = 0; i < 2001; ++i) {
-            p[i] = srrv;
+            p[i] = _ch;
         }
         CloseCursor();
     }
 
-    void PutChar(char_t _ch, u32_t _x, u32_t _y)
+    void PutChar(char_t _ch, VGAAttr _attr = VGAAttr::Default())
     {
-        size_t str_addr = VGASTR_RAM_BASE + (_x + (_y * 80 * 2));
-        auto p = _Base::Ptr<char_t>(str_addr);
-        *p = _ch;
-    }
-    void CloseCursor()
-    {
-        out_u8(VGACTRL_REG_ADR, VGACURS_REG_INX);
-        out_u8(VGACTRL_REG_DAT, VGACURS_CLOSE);
-    }
-    void KPrint(_Base::CPtr<char_t> _str)
-    {
-        g_curs.write(_str);
+        g_vga_cursor.putChar(_ch, _attr);
     }
 
+    void CloseCursor()
+    {
+        out_u8(VGA_CTRL_REG_ADR, VGA_CURSOR_REG_INX);
+        out_u8(VGA_CTRL_REG_DAT, VGA_CURSOR_CLOSE);
+    }
+
+    void KPrint(_Base::CPtr<char_t> _str)
+    {
+        g_vga_cursor.write(_str);
+    }
+
+    [[noreturn]]
     void KError(_Base::CPtr<char_t> _error)
     {
         KPrint(_error);
@@ -53,52 +57,65 @@ namespace _Ldr {
         }
     }
 
-    void Cursor::write(_Base::CPtr<char_t> _str)
+    void VgaCursor::write(_Base::CPtr<char_t> _str, VGAAttr _attr)
     {
-        size_t str_addr = pos_x + pos_y * 80 * 2;
-        auto p_str_dst = _Base::Ptr<char_t>(memory_start + str_addr);
+        auto str_dst = _Base::Ptr<char_t>(getOffset());
         bool findX = false;
 
-        while (*_str) {
-            if (*_str == 10) {
+        while ((*_str) != 0) {
+            // 换行
+            if ((*_str) == VGA_CHAR_LF) {
                 findX = true;
                 ++_str;
-                if (*_str == 0) {
+                if ((*_str) == 0) {
                     break;
                 }
             }
-            currentPos(VGACHAR_DF_CFLG);
-            *p_str_dst = *_str++;
-            p_str_dst += 2;
+            // 普通
+            setCurrentPos(VGA_CHAR_DF);
+            // 写字符
+            *str_dst = (*_str);
+            ++str_dst; ++_str;
+            // 写字符属性
+            *str_dst = _attr.attr;
+            ++str_dst; ++_str;
         }
 
         if (findX) {
-            currentPos(VGACHAR_LR_CFLG);
+            setCurrentPos(VGA_CHAR_LF);
         }
     }
 
-    void Cursor::currentPos(u32_t _flag) {
-        if (_flag == VGACHAR_LR_CFLG) {
-            ++pos_y;
-            pos_x = 0;
-            if (pos_y > 24) {
-                pos_y = 0;
+    void VgaCursor::setCurrentPos(u32_t _flag)
+    {
+        // 换行
+        if (_flag == VGA_CHAR_LF) {
+            ++y;
+            x = 0;
+            if (y > 24) {
+                y = 0;
                 ClearScreen(VGADP_DFVL);
             }
             return;
         }
-        if (_flag == VGACHAR_DF_CFLG) {
-            pos_x += 2;
-            if (pos_x > 159) {
-                pos_x = 0;
-                ++pos_y;
-                if (pos_y > 24) {
-                    pos_y = 0;
+        if (_flag == VGA_CHAR_DF) {
+            x += 2;
+            if (x > 159) {
+                x = 0;
+                ++y;
+                if (y > 24) {
+                    y = 0;
                     ClearScreen(VGADP_DFVL);
                 }
                 return;
             }
         }
+    }
+
+    void VgaCursor::putChar(char_t _ch, VGAAttr _attr)
+    {
+        char_t str[2] = {_ch, '\0'};
+        write(str, _attr);
     }
 
 }

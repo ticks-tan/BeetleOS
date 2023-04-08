@@ -10,7 +10,7 @@
 
 #include "initldr.h"
 
-void InitHeadFile()
+__NO_MANGLE void InitHeadFile()
 {
     _Ldr::InitCursor(); // 初始化光标
     _Ldr::CloseCursor();

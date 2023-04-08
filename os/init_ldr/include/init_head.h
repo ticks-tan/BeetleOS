@@ -12,7 +12,8 @@
 
 #include "ldr_type.h"
 
-void InitHeadFile();
+
+__NO_MANGLE void InitHeadFile();
 
 namespace _Ldr {
 

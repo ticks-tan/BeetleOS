@@ -91,25 +91,28 @@ namespace _Ldr
 
     // 检查cpu是否支持 cpuid
     bool CheckCpuIdSupport();
-
     // 检查cpu是否支持长模式，系统关键
     bool CheckCpuLongModeSupport();
-
     // 检查cpu
     bool CheckCpu(_Base::Ptr<MachInfo> _info);
 
+    // 通过BIOS中断获取e820内存信息
     void E820MMap(_Base::Ptr<E820Map*> _retemp, _Base::Ptr<u32_t> _retemnr);
+
+
+    // 检查e820物理地址大小
+    _Base::Ptr<E820Map> CheckE820MemorySize(_Base::Ptr<E820Map> e8p,u32_t enr,u64_t sadr,u64_t size);
+    // 获取e820物理内存大小
+    u64_t GetE820MemorySize(_Base::Ptr<E820Map> e8p,u32_t enr);
     // 初始化 E820 内存
     void InitMemory(_Base::Ptr<MachInfo> _info);
 
-    _Base::Ptr<E820Map> CheckE820MemorySize(_Base::Ptr<E820Map> e8p,u32_t enr,u64_t sadr,u64_t size);
 
-    u64_t GetE820MemorySize(_Base::Ptr<E820Map> e8p,u32_t enr);
 
     void InitCheckMemory();
     void OutChar(char* c);
-
     void CreateLdrPageAndOpen();
+
 
 }
 
