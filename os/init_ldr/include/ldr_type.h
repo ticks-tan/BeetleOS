@@ -11,8 +11,7 @@
 #ifndef __BEETLE_OS_INIT_LDR_LDR_TYPE_H
 #define __BEETLE_OS_INIT_LDR_LDR_TYPE_H
 
-#include "kernel_base.h"
-#include "base_string.h"
+#include "vga_str.h"
 
 namespace _Ldr {
 
@@ -27,23 +26,24 @@ namespace _Ldr {
 
 /*-----------------------------------------------------------------*/
 
-#define FHDSC_NMAX 192
-#define FHDSC_SZMAX 256
-#define MDC_END_GIC 0xaaffaaffaaffaaff
-#define MDC_RVGIC 0xffaaffaaffaaffaa
-#define REALDRV_PHY_ADDR 0x1000 // ldr 文件内存地址
-#define ILDR_KERNEL_PHY_ADDR 0x200000   // ldr kernel 文件内存地址
+#define IMAGE_OS_FILE_NAME_MAX 192  // 映像文件内部文件名最大大小
+#define IMAGE_OS_FHD_COUNT_MAX 256  // 映像文件头最大数量
+#define IMAGE_OS_MDC_END_MAGIC  0xaaffaaffaaffaaff  // 映像文件结束标识
+#define IMAGE_OS_MDC_RV_MAGIC   0xffaaffaaffaaffaa  // 映像文件version和magic
+#define IMAGE_OS_HDC_OFF (0x1000)
+#define IMAGE_FILE_PHY_ADDR 0x4000000           // 操作系统镜像物理地址
+#define IMAGE_KERNEL_PHY_ADDR 0x2000000         // 内核映像文件存放物理地址 (32MB)
+#define LDR_FILE_ADDR IMAGE_FILE_PHY_ADDR       // ldr 文件地址
+#define MRD_DSC_ADDR (LDR_FILE_ADDR+0x1000)     // 映像文件
+
+#define IMAGE_LDR_READ_INT_PHY_ADDR 0x1000      // ldr 文件物理内存地址
+#define IMAGE_LDR_KERNEL_PHY_ADDR   0x200000    // ldr kernel 文件物理内存地址
 #define IMGSHEL_PHYADR 0x30000
-#define IKSTACK_PHYADR (0x90000-0x10)
-#define IKSTACK_SIZE 0x1000
-#define IMG_FILE_PHY_ADDR 0x4000000
-#define IMGKRNL_PHYADR 0x2000000
-#define KINITPAGE_PHYADR 0x1000000
-#define KINITFRVM_PHYADR 0x800000
-#define KINITFRVM_SZ 0x400000
-#define LDR_FILE_ADDR IMG_FILE_PHY_ADDR    // ldr 文件地址
-#define MLOSDSC_OFF (0x1000)
-#define MRD_DSC_ADDR (LDR_FILE_ADDR+0x1000)    // 映像文件
+#define KERNEL_STACK_PHY_ADDR   (0x90000-0x10)  // 内核栈物理空间地址
+#define KERNEL_STACK_SIZE       0x1000          // 内核栈大小 4KB
+#define KERNEL_INIT_PAGE_PHY_ADDR 0x1000000     // 内核初始化MMU页表物理地址
+#define KERNEL_INIT_FRVM_PHY_ADDR 0x800000
+#define KERNEL_INIT_FRVM_SIZE   0x400000
 
 /*-----------------------------------------------------------------*/
 
@@ -87,9 +87,9 @@ namespace _Ldr {
 #define RM16_ESP_OFF (ETYBAK_ADDR+12)
 
 #define RWHDPACK_ADDR (ETYBAK_ADDR+32)
-#define E80MAP_NR (ETYBAK_ADDR+64)
-#define E80MAP_ADDR_ADDR (ETYBAK_ADDR+68)
-#define E80MAP_ADDR (0x5000)
+#define E820MAP_NR (ETYBAK_ADDR+64)          // 存放 e820 内存结构数量地址
+#define E820MAP_ADDR_ADDR (ETYBAK_ADDR+68)
+#define E820MAP_ADDR (0x5000)
 #define VBE_INFO_ADDR (0x6000)
 #define VBEM_INFO_ADDR (0x6400)
 
@@ -129,50 +129,72 @@ namespace _Ldr {
 /*-----------------------------------------------------------------*/
 
     // BIOS中断
-    extern "C" {
-        void __REG_CALL(3) real_addr_call_entry(u16_t call_int, u16_t val1, u16_t val2);
-    }
+    __NO_MANGLE void __REG_CALL(3) real_addr_call_entry(u16_t call_int, u16_t val1, u16_t val2);
 
-    [[noreturn]] extern void KError(_Base::CPtr<char_t> _error);
+    /*
+     * 内核文件不止一个，为了让 Grub 只加载一个文件，
+     * 选择将多个 bin 文件连接在一起，并在文件头部加上 4KB GRUB 头和各个文件的文件头描述符，
+     * 结构类似下面这样：
+     *
+     * |-------------------|
+     * |   4KB GRUB文件头   |
+     * |-------------------|
+     * |   映像文件头描述符   |
+     * |   文件 1 头描述符   |
+     * |   文件 2 头描述符   |
+     * |   文件 3 头描述符   |
+     * |       ....        |
+     * |-------------------|
+     * |     文件 1 内容     |
+     * |     文件 2 内容     |
+     * |     文件 3 内容     |
+     * |       ....        |
+     * |-------------------|
+     *
+     */
 
+    // 映像文件内文件头描述符
+    struct ImageOSFileHDes {
+        u64_t type;             // 文件类型
+        u64_t subtype;          // 文件子类型
+        u64_t states;           // 文件状态
+        u64_t header_id;        // 文件文件头ID
+        u64_t offset_start;     // 在映像文件中开始偏移
+        u64_t offset_end;       // 在映像文件中结束偏移
+        u64_t file_real_size;   // 文件实际大小
+        u64_t file_sum;         // 文件校验和
+        char_t file_name[IMAGE_OS_FILE_NAME_MAX];   // 文件名称
 
+    }; // ImageOSFileHDes
 
-    struct fhdsc_t {
-        u64_t fhd_type;
-        u64_t fhd_subtype;
-        u64_t fhd_stuts;
-        u64_t fhd_id;
-        u64_t fhd_intsfsoff;
-        u64_t fhd_intsfend;
-        u64_t fhd_frealsz;
-        u64_t fhd_fsum;
-        char_t fhd_name[FHDSC_NMAX];
-    };
+    // 映像文件头描述符
+    struct ImageFileHDes {
+        u64_t start_magic;          // 映像文件标识
+        u64_t sf_checksum;          // 未使用
+        u64_t sfs_offset;           // 未使用
+        u64_t sfe_offset;           // 未使用
+        u64_t sf_real_size;         // 未使用
+        u64_t ldr_file_start;       // 二级引导器在映像文件中开始偏移
+        u64_t ldr_file_end;         // 二级引导器在映像文件中结束偏移
+        u64_t ldr_file_real_size;   // 二级引导器在映像文件中实际大小
+        u64_t ldr_file_checksum;    // 二级引导器文件校验和
+        u64_t fhd_start_offset;     // 文件头描述开始偏移
+        u64_t fhd_end_offset;       // 文件头描述结束偏移
+        u64_t fhd_real_size;        // 文件头描述实际大小
+        u64_t fhd_checksum;         // 文件头描述校验和
+        u64_t file_start_offset;    // 文件部分开始偏移
+        u64_t file_end_offset;      // 文件部分结束偏移
+        u64_t file_real_size;       // 文件部分实际大小
+        u64_t file_checksum;        // 文件部分校验和
+        u64_t ldr_fhd_index;        // 二级引导器在文件头描述中的序号
+        u64_t fhd_count;            // 文件头描述符个数
+        u64_t file_count;           // 文件个数
+        u64_t end_magic;            // 结束标识
+        u64_t version;              // 版本
 
-    struct mlosrddsc_t {
-        u64_t mdc_mgic;
-        u64_t mdc_sfsum;
-        u64_t mdc_sfsoff;
-        u64_t mdc_sfeoff;
-        u64_t mdc_sfrlsz;
-        u64_t mdc_ldrbk_s;
-        u64_t mdc_ldrbk_e;
-        u64_t mdc_ldrbk_rsz;
-        u64_t mdc_ldrbk_sum;
-        u64_t mdc_fhdbk_s;
-        u64_t mdc_fhdbk_e;
-        u64_t mdc_fhdbk_rsz;
-        u64_t mdc_fhdbk_sum;
-        u64_t mdc_filbk_s;
-        u64_t mdc_filbk_e;
-        u64_t mdc_filbk_rsz;
-        u64_t mdc_filbk_sum;
-        u64_t mdc_ldrcodenr;
-        u64_t mdc_fhdnr;
-        u64_t mdc_filnr;
-        u64_t mdc_endgic;
-        u64_t mdc_rv;
-    };
+    public:
+
+    }; // ImageFileHDes
 
 #define RLINTNR(x) (x*2)
 
@@ -222,17 +244,35 @@ namespace _Ldr {
 
     }__TYPE_ALIGN;
 
-#define RAM_USABLE 1
-#define RAM_RESERV 2
-#define RAM_ACPIREC 3
-#define RAM_ACPINVS 4
-#define RAM_AREACON 5
+    /*
+     * 标记 E820Map 内存类型
+     */
+#define E820_RAM_USABLE      1   // 可用内存
+#define E820_RAM_RESERVED    2   // 保留内存
+#define E820_RAM_ACPI_REC    3   // ACPI 表资源
+#define E820_RAM_ACPI_NVS    4   // ACPI NVS 空间
+#define E820_RAM_BAD_AREA    5   // 包含坏内存
 
+    // E820 内存视图
     struct E820Map {
-        u64_t start_addr;   /* start of memory segment8 */
-        u64_t size;         /* size of memory segment8 */
-        u32_t type;         /* type of memory segment 4 */
-    }__TYPE_ALIGN;
+        u64_t start_addr;   /* 内存开始位置 */
+        u64_t size;         /* 内存大小 */
+        u32_t type;         /* 内存类型 */
+
+    public:
+        // 调用BIOS中断获取 e820 数组和数量
+        static void MMap(_Base::Ptr<_Base::Ptr<E820Map>> _e820_map, _Base::Ptr<u32_t> _count);
+        // 检查内存是否满足要求
+        static _Base::Ptr<E820Map> CheckMemoryInE820MapCanUsable(
+                _Base::Ptr<E820Map> _e820_map,
+                u32_t _e820_count,
+                u64_t _start_addr,
+                u64_t _size
+                );
+        // 获取所有E820Map数组内存大小
+        static u64_t GetAllMemorySize(_Base::CPtr<E820Map> _e820_map, u32_t _count);
+
+    }__TYPE_ALIGN; // E820Map
 
 
     struct VBEInfo {
@@ -504,7 +544,7 @@ namespace _Ldr {
         u64_t mb_ksepadre;        //
         u64_t mb_kservadrs;       //
         u64_t mb_kservadre;       //
-        u64_t mb_nextwtpadr;      //
+        u64_t next_free_phy_addr; // 下一个空闲的物理内存地址
         u64_t base_font_file_addr;// 操作系统字体文件地址
         u64_t base_font_file_size;// 操作系统字体文件大小
         u64_t vga_addr;           // 机器显存地址
@@ -525,12 +565,17 @@ namespace _Ldr {
         u64_t mb_memmapnr;        //
         u64_t mb_memmapsz;        //
         u64_t mb_memmapchksum;    //
-        u64_t mb_pml4padr;        // 机器页表地址
-        u64_t mb_subpageslen;     // 机器页表个数
-        u64_t mb_kpmapphymemsz;   // 操作系统映射空间大小
+        u64_t mmu_page_phy_addr;  // 机器页表地址
+        u64_t subpages_len;       // 机器页表个数
+        u64_t phy_mem_map_size;   // 操作系统映射空间大小
         u64_t ebda_phy_addr;      // ebda 物理地址
         MachAcpiRsdp acpi_rsdp;   // ACPI RSDP表
         GraphInfo graph_info;     // 图形信息
+
+    public:
+        static _Base::Ptr<ImageOSFileHDes> GetOSFileHeaderDesByName(
+                    _Base::Ptr<MachInfo> _info,
+                    _Base::CPtr<char_t> _file_name);
 
     public:
         // 初始化系统信息结构
@@ -543,11 +588,14 @@ namespace _Ldr {
         // 初始化 Rsdp 并检查是否可用
         static void InitAcpiRsdp(_Base::Ptr<MachInfo> _info)
         {
+            _info->ebda_phy_addr = BIOS_ACPI_RSDP_ADDR;
             auto rsdp = MachAcpiRsdp::FindAcpiRsdpFromEbda();
             if (nullptr == rsdp) {
                 KError("Error: Your Computer isn't support ACPI");
             }
+            // 拷贝到 MachInfo 结构体中
             _Base::memcopy(&(_info->acpi_rsdp), rsdp, sizeof(MachAcpiRsdp));
+            // 拷贝后再次验证是否可用
             if (nullptr == MachAcpiRsdp::CheckIsOk(&_info->acpi_rsdp)) {
                 KError("Error: Your Computer isn't support ACPI");
             }

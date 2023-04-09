@@ -20,11 +20,11 @@ include_directories(include)
 set_source_files_properties(${SOURCE_ASM16_FILES} PROPERTIES COMPILE_FLAGS "-e_start -f elf32")
 set_source_files_properties(${SOURCE_ASM32_FILES} PROPERTIES COMPILE_FLAGS "-e_start -f elf32")
 
-add_library(img_init_header
+add_library(init_ldr_header
         OBJECT
-        src/init_img_head.asm
+        src/init_ldr_head.asm
         src/init_head.cc
-        src/vgastr.cc
+        src/vga_str.cc
         )
 add_library(init_int_save
         OBJECT
@@ -38,7 +38,8 @@ add_library(init_ldr_kernel
         src/ldr_type.cc
         src/mach_start_param.cc
         src/graph.cc
+        src/fs.cc
         src/check_cpu.cc
-        src/vgastr.cc
+        src/vga_str.cc
         )
 

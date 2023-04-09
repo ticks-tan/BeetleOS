@@ -54,7 +54,7 @@ save_eip_jmp:
 	mov [PM32_ESP_OFF],esp
 	jmp dword far [cpmty_mode]
 cpmty_mode:
-	dd 0x1000
+	dd 0x1000 ; 跳转到 0x1000 处，该处存放的是 real_int_save.asm 函数，该函数处理实际的BIOS中断调用
 	dw 0x18
 	jmp $
 

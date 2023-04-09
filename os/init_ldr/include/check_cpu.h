@@ -84,6 +84,7 @@
 
 typedef unsigned long long pt64_t;
 
+// 暂停CPU执行
 #define CLI_HALT() __asm__ __volatile__("cli; hlt": : :"memory")
 
 namespace _Ldr
@@ -96,23 +97,20 @@ namespace _Ldr
     // 检查cpu
     bool CheckCpu(_Base::Ptr<MachInfo> _info);
 
-    // 通过BIOS中断获取e820内存信息
-    void E820MMap(_Base::Ptr<E820Map*> _retemp, _Base::Ptr<u32_t> _retemnr);
+    // 初始化获取内存布局信息
+    bool InitMemoryView(_Base::Ptr<MachInfo> _info);
 
+    // 初始化内核栈地址
+    bool InitKernelStackAddr(_Base::Ptr<MachInfo> _info);
 
-    // 检查e820物理地址大小
-    _Base::Ptr<E820Map> CheckE820MemorySize(_Base::Ptr<E820Map> e8p,u32_t enr,u64_t sadr,u64_t size);
-    // 获取e820物理内存大小
-    u64_t GetE820MemorySize(_Base::Ptr<E820Map> e8p,u32_t enr);
-    // 初始化 E820 内存
-    void InitMemory(_Base::Ptr<MachInfo> _info);
+    // 初始化放置内核文件到高地址空间
+    bool InitKernelFile(_Base::Ptr<MachInfo> _info);
 
+    // 初始化E820数组
+    bool InitE820Map(_Base::Ptr<MachInfo> _info);
 
-
-    void InitCheckMemory();
-    void OutChar(char* c);
-    void CreateLdrPageAndOpen();
-
+    // 初始化MMU页表
+    bool InitMMUPage(_Base::Ptr<MachInfo> _info);
 
 }
 

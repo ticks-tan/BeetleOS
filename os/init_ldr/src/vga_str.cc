@@ -7,7 +7,7 @@
 *
 * Copyright 2023 Ticks, Inc. All rights reserved. 
 **/
-#include "vgastr.h"
+#include "vga_str.h"
 
 namespace _Ldr {
 
@@ -43,18 +43,18 @@ namespace _Ldr {
         out_u8(VGA_CTRL_REG_DAT, VGA_CURSOR_CLOSE);
     }
 
-    void KPrint(_Base::CPtr<char_t> _str)
+    void KDebug(_Base::CPtr<char_t> _str)
     {
+#ifdef DEBUG
+        g_vga_cursor.write("Debug: ");
         g_vga_cursor.write(_str);
+#endif
     }
 
-    [[noreturn]]
     void KError(_Base::CPtr<char_t> _error)
     {
-        KPrint(_error);
-        for (;;) {
-            ;
-        }
+        g_vga_cursor.write("Error: ");
+        g_vga_cursor.write(_error);
     }
 
     void VgaCursor::write(_Base::CPtr<char_t> _str, VGAAttr _attr)
@@ -94,7 +94,7 @@ namespace _Ldr {
             x = 0;
             if (y > 24) {
                 y = 0;
-                ClearScreen(VGADP_DFVL);
+                ClearScreen(VGA_DP_DF);
             }
             return;
         }
@@ -105,7 +105,7 @@ namespace _Ldr {
                 ++y;
                 if (y > 24) {
                     y = 0;
-                    ClearScreen(VGADP_DFVL);
+                    ClearScreen(VGA_DP_DF);
                 }
                 return;
             }

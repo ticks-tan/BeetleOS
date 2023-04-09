@@ -14,7 +14,7 @@ __NO_MANGLE void ldr_kernel_entry()
 {
     _Ldr::InitCursor();
     _Ldr::CloseCursor();
-    _Ldr::ClearScreen(VGADP_DFVL);
+    _Ldr::ClearScreen(VGA_DP_DF);
     // 开始收集信息
     _Ldr::InitMachStartParam();
 }

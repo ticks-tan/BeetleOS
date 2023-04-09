@@ -12,18 +12,13 @@
 
 #include "ldr_type.h"
 
-
-__NO_MANGLE void InitHeadFile();
+__NO_MANGLE void init_ldr_header();
 
 namespace _Ldr {
 
-    void WriteShellFile();
-
-    void WriteKernelFile();
-
     void WriteRealIntSaveFile();
 
-    _Base::Ptr<fhdsc_t> FindFile(_Base::CPtr<char_t> _name);
+    _Base::Ptr<ImageOSFileHDes> FindFile(_Base::CPtr<char_t> _name);
 
     void WriteLdrKernelFile();
 

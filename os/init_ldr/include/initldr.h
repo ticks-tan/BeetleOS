@@ -12,7 +12,7 @@
 
 #include "ldr_type.h"
 #include "io.h"
-#include "vgastr.h"
+#include "vga_str.h"
 #include "graph.h"
 #include "ldr_entry.h"
 #include "init_head.h"

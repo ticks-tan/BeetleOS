@@ -21,7 +21,7 @@ real_entry:
 	mov sp, 08000h ; 设置栈
 	mov bp,func_table
 	add bp,ax
-	call [bp] ; 调用寒暑表中函数，ax 是C函数参数传过来的 __attribute__((regparm(X)))
+	call [bp] ; 调用寒暑表中函数，ax 是C函数参数传过来的 __attribute__((regparm(3)))
 	cli
 	call disable_nmi
 	mov	ebp, cr0
@@ -56,25 +56,26 @@ cleardisp:
 	int 10h			;调用的BOIS的10号
 	ret
 
-_getmmap:
+;; 获取内存视图
+_get_memory_map:
 	push ds
 	push es
 	push ss
 	mov esi,0
-	mov dword[E80MAP_NR],esi
-	mov dword[E80MAP_ADRADR],E80MAP_ADR
+	mov dword[E820MAP_NR],esi    ; 将 e820 数组数量放入 E820MAP_NR 宏定义的位置处
+	mov dword[E820MAP_ADDR_ADDR],E820MAP_ADDR ; 将 E820MAP_ADDR 内存数据复制到 E820MAP_ADDR_ADDR处
 
 	xor ebx,ebx
-	mov edi,E80MAP_ADR
+	mov edi,E820MAP_ADDR
 loop:
-	mov eax,0e820h
+	mov eax,0e820h  ; eax 寄存器赋值为 0xE820 ，e820 内存数组名称由来
 	mov ecx,20
 	mov edx,0534d4150h
-	int 15h
+	int 15h ; 调用 BIOS 15 号中断获取内存信息
 	jc .1
 
 	add edi,20
-	cmp edi,E80MAP_ADR+0x1000
+	cmp edi,E820MAP_ADDR+0x1000
 	jg .1
 
 	inc esi
@@ -88,7 +89,7 @@ loop:
 	mov esi,0
 
 .2:
-	mov dword[E80MAP_NR],esi
+	mov dword[E820MAP_NR],esi
 	pop ss
 	pop es
 	pop ds
@@ -181,7 +182,7 @@ disable_nmi:
 	ret
 
 func_table: ; 函数表
-	dw _getmmap ; 获取内存视图
+	dw _get_memory_map ; 获取内存视图 (偏移为 0)
 	dw _read    ; 读取硬盘
         dw _getvbemode ; 获取显卡vbe模式
         dw _getvbeonemodeinfo ; 获取显卡vbe数据

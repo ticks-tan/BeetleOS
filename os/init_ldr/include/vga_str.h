@@ -13,8 +13,6 @@
 #include "base_string.h"
 #include "io.h"
 
-
-#define VGADP_DFVL 0x0700
 #define VGADP_HLVL 0x0f00
 #define VGASADH_REG_INX 0x0c
 #define VGASADL_REG_INX 0x0d
@@ -83,6 +81,7 @@
 #define VGA_CHAR_LF 10  // 换行符
 #define VGA_CHAR_DF 0   // 空字符
 
+#define VGA_DP_DF 0x0700
 #define VGA_CTRL_REG_ADR 0x3d4
 #define VGA_CTRL_REG_DAT 0x3d5
 #define VGA_CURSOR_REG_INX 0x0a
@@ -123,6 +122,9 @@ namespace _Ldr {
         size_t y;
 
     public:
+        static char_t write_buf[1024];
+
+    public:
         void setPos(u32_t _x, u32_t _y) {
             x = _x;
             y = _y;
@@ -145,6 +147,7 @@ namespace _Ldr {
             , x(0)
             , y(0)
         {}
+
     }; // VGACursor
 
 
@@ -159,7 +162,9 @@ namespace _Ldr {
     // 打印
     extern void KPrint(_Base::CPtr<char_t> _str);
     // 错误输出
-    [[noreturn]] extern void KError(_Base::CPtr<char_t> _error);
+    extern void KError(_Base::CPtr<char_t> _error);
+    // 调试输出
+    void KDebug(_Base::CPtr<char_t> _str);
 
 }
 

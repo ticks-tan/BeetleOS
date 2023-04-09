@@ -80,6 +80,7 @@ namespace _Base {
         }
     }
 
+
 }
 
 #endif // __BEETLE_OS_BASE_BASE_STRING_H
